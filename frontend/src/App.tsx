@@ -202,55 +202,86 @@ setCurveResult(preview)
     </p>
 
 
-<p>
-  Tokens for Sale: {
-    (curveResult.reconciliation.saleAllocationRaw / 1_000_000_000n).toString()
-  } ANX
-</p>
-<p>
-  Sale Allocation: {
-    ((curveResult.reconciliation.saleAllocationRaw * 100n) /
-      curveResult.totalSupplyRaw).toString()
-  }%
-</p>
 
 <p>
-  Starting Price (quote per token): {
-    (
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Tokens for Sale
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(curveResult.reconciliation.saleAllocationRaw / 1_000_000_000n).toLocaleString('en-US')} ANX
+  </strong>
+</p>
+
+
+<p>
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Sale Allocation
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
+      (curveResult.reconciliation.saleAllocationRaw * 100n) /
+      curveResult.totalSupplyRaw
+    ).toString()}%
+  </strong>
+</p>
+
+
+
+<p>
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Starting Price (quote per token)
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
       (Number(curveResult.startSqrtPrice) / 2 ** 64) ** 2 *
       10 ** (economics.baseDecimals - economics.quoteDecimals)
-    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
-  }
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+  </strong>
 </p>
 
+
+
 <p>
-  Graduation Price (quote per token): {
-    (
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Graduation Price (quote per token)
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
       (Number(curveResult.migrationSqrtPrice) / 2 ** 64) ** 2 *
       10 ** (economics.baseDecimals - economics.quoteDecimals)
-    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
-  }
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+  </strong>
 </p>
 
+
+
 <p>
-  Net Migration Base (ANX): {
-    (
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Net Migration Base (ANX)
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
       Number(curveResult.reconciliation.netMigrationBaseRaw) /
       10 ** curveResult.metadata.baseDecimals
-    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
-  }
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })} ANX
+  </strong>
 </p>
 
+
+
 <p>
-  Net Migration Quote: {
-    (
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Net Migration Quote
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
       Number(curveResult.reconciliation.netMigrationQuoteRaw) /
       10 ** curveResult.metadata.quoteDecimals
-    ).toLocaleString('en-US', {
-      maximumFractionDigits: 6
-    })
-  } quote units
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })}
+  </strong>
+  <small style={{ opacity: 0.7 }}>quote units</small>
 </p>
+
 
   </div>
 )}
