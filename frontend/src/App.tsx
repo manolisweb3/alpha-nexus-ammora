@@ -230,6 +230,26 @@ setCurveResult(preview)
   }
 </p>
 
+<p>
+  Net Migration Base (ANX): {
+    (
+      Number(curveResult.reconciliation.netMigrationBaseRaw) /
+      10 ** curveResult.metadata.baseDecimals
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
+  }
+</p>
+
+<p>
+  Net Migration Quote: {
+    (
+      Number(curveResult.reconciliation.netMigrationQuoteRaw) /
+      10 ** curveResult.metadata.quoteDecimals
+    ).toLocaleString('en-US', {
+      maximumFractionDigits: 6
+    })
+  } quote units
+</p>
+
   </div>
 )}
 
