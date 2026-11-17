@@ -406,6 +406,22 @@ export function BondingCurveChart({
         <path d={path} fill="none"
           stroke="#46dce9" strokeWidth="4"
           strokeLinecap="round" />
+
+{points.map((p, i) => (
+  <circle
+    key={i}
+    cx={40 + p.progress * 5.2}
+    cy={205 - ((p.price - minPrice) / range) * 175}
+    r="8"
+    fill="#46dce9"
+    fillOpacity="0.12"
+  >
+    <title>
+      {`Progress: ${p.progress.toFixed(1)}% | Price: ${p.price.toLocaleString('en-US', { maximumFractionDigits: 6 })}`}
+    </title>
+  </circle>
+))}
+
         <text x="40" y="20" fill="white" fontSize="14">
           {maxPrice.toLocaleString('en-US')}
         </text>
