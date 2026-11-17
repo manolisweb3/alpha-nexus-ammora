@@ -48,6 +48,10 @@ const [totalSupply, setTotalSupply] = useState('10000')
     'Press the button to calculate a test curve.'
   )
 
+const [curveResult, setCurveResult] =
+  useState<ReturnType<typeof buildPortableCurve> | null>(null)
+
+
   function calculateCurve() {
     try {
       
@@ -77,6 +81,8 @@ migration: {
 })
 
 
+
+setCurveResult(preview)
 
       
       const json = JSON.stringify(
@@ -178,6 +184,36 @@ migration: {
     </div>
   ))}
 </div>
+
+{curveResult && (
+  <div style={{
+    background: '#1d293b',
+    border: '1px solid #566f9b',
+    borderRadius: '12px',
+    padding: '18px',
+    marginTop: '20px'
+  }}>
+    <h3>SDK Calculation Results</h3>
+    <p>
+      Total Supply (raw units):
+      {' '}{curveResult.totalSupplyRaw.toString()}
+    </p>
+
+
+<p>
+  Tokens for Sale: {
+    (curveResult.reconciliation.saleAllocationRaw / 1_000_000_000n).toString()
+  } ANX
+</p>
+<p>
+  Sale Allocation: {
+    ((curveResult.reconciliation.saleAllocationRaw * 100n) /
+      curveResult.totalSupplyRaw).toString()
+  }%
+</p>
+
+  </div>
+)}
 
 <details style={{ marginTop: '20px' }}>
   <summary style={{ cursor: 'pointer' }}>
