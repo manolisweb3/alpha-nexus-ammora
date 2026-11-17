@@ -212,6 +212,24 @@ setCurveResult(preview)
   }%
 </p>
 
+<p>
+  Starting Price (quote per token): {
+    (
+      (Number(curveResult.startSqrtPrice) / 2 ** 64) ** 2 *
+      10 ** (economics.baseDecimals - economics.quoteDecimals)
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
+  }
+</p>
+
+<p>
+  Graduation Price (quote per token): {
+    (
+      (Number(curveResult.migrationSqrtPrice) / 2 ** 64) ** 2 *
+      10 ** (economics.baseDecimals - economics.quoteDecimals)
+    ).toLocaleString('en-US', { maximumFractionDigits: 6 })
+  }
+</p>
+
   </div>
 )}
 
