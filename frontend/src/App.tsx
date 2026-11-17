@@ -196,10 +196,19 @@ setCurveResult(preview)
     marginTop: '20px'
   }}>
     <h3>SDK Calculation Results</h3>
-    <p>
-      Total Supply (raw units):
-      {' '}{curveResult.totalSupplyRaw.toString()}
-    </p>
+    
+<p>
+  <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+    Total Supply
+  </span>
+  <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+    {(
+      curveResult.totalSupplyRaw /
+      (10n ** BigInt(curveResult.metadata.baseDecimals))
+    ).toLocaleString('en-US')} {tokenSymbol}
+  </strong>
+</p>
+
 
 
 
