@@ -80,11 +80,137 @@ export function makeCurveChartPoints(
   }))
 }
 
+type TradeDirection = 'buy' | 'sell'
+
+function formatRawAmount(amount: bigint, decimals: number) {
+  const scale = 10n ** BigInt(decimals)
+  const whole = amount / scale
+  const fraction = (amount % scale)
+    .toString()
+    .padStart(decimals, '0')
+    .replace(/0+$/, '')
+
+  return fraction ? `${whole}.${fraction}` : whole.toString()
+}
+
+function estimateQuoteAmount(
+  curve: ReturnType<typeof buildPortableCurve>,
+  direction: TradeDirection,
+  amountText: string
+): { quoteAmount: number | null; error: string | null } {
+  if (!amountText.trim()) {
+    return { quoteAmount: null, error: 'Enter a positive token amount.' }
+  }
+
+  if (!/^\d+(?:\.\d*)?$/.test(amountText)) {
+    return { quoteAmount: null, error: 'Enter a valid positive decimal amount.' }
+  }
+
+  const [whole, fraction = ''] = amountText.split('.')
+  const decimals = curve.metadata.baseDecimals
+  if (fraction.length > decimals) {
+    return {
+      quoteAmount: null,
+      error: `Use no more than ${decimals} decimal places.`,
+    }
+  }
+
+  const scale = 10n ** BigInt(decimals)
+  const amountRaw =
+    BigInt(whole) * scale +
+    BigInt(fraction.padEnd(decimals, '0') || '0')
+
+  if (amountRaw <= 0n) {
+    return { quoteAmount: null, error: 'Enter an amount greater than zero.' }
+  }
+
+  if (amountRaw > curve.reconciliation.saleAllocationRaw) {
+    return {
+      quoteAmount: null,
+      error: `Amount exceeds the ${formatRawAmount(curve.reconciliation.saleAllocationRaw, decimals)} token sale allocation.`,
+    }
+  }
+
+  const q64 = 2 ** 64
+  const segments = curve.segments.map((segment) => ({
+    lower: Number(segment.lowerSqrtPrice) / q64,
+    upper: Number(segment.upperSqrtPrice) / q64,
+    liquidity: Number(segment.liquidity) / q64,
+  }))
+
+  if (segments.some(({ lower, upper, liquidity }) =>
+    !Number.isFinite(lower) ||
+    !Number.isFinite(upper) ||
+    !Number.isFinite(liquidity) ||
+    lower <= 0 ||
+    upper <= lower ||
+    liquidity <= 0
+  )) {
+    return {
+      quoteAmount: null,
+      error: 'This curve is outside the range supported by the illustrative estimator.',
+    }
+  }
+
+  // Integrate the SDK segment curve numerically, without applying trade fees.
+  let remainingBaseRaw = Number(amountRaw)
+  let quoteRaw = 0
+  const orderedSegments = direction === 'buy' ? segments : [...segments].reverse()
+
+  for (const { lower, upper, liquidity } of orderedSegments) {
+    const baseCapacity = liquidity * (1 / lower - 1 / upper)
+    const quoteCapacity = liquidity * (upper - lower)
+
+    if (remainingBaseRaw <= baseCapacity) {
+      if (direction === 'buy') {
+        const inverseNextPrice = 1 / lower - remainingBaseRaw / liquidity
+        if (inverseNextPrice <= 0) {
+          return {
+            quoteAmount: null,
+            error: 'Amount is outside the supported curve range.',
+          }
+        }
+        const nextPrice = Math.min(upper, 1 / inverseNextPrice)
+        quoteRaw += liquidity * (nextPrice - lower)
+      } else {
+        const nextPrice = Math.max(
+          lower,
+          1 / (1 / upper + remainingBaseRaw / liquidity)
+        )
+        quoteRaw += liquidity * (upper - nextPrice)
+      }
+      remainingBaseRaw = 0
+      break
+    }
+
+    remainingBaseRaw -= baseCapacity
+    quoteRaw += quoteCapacity
+  }
+
+  if (
+    remainingBaseRaw > 0 ||
+    !Number.isFinite(quoteRaw) ||
+    quoteRaw < 0
+  ) {
+    return {
+      quoteAmount: null,
+      error: 'Amount exceeds the available simulated curve capacity.',
+    }
+  }
+
+  return {
+    quoteAmount: quoteRaw / 10 ** curve.metadata.quoteDecimals,
+    error: null,
+  }
+}
+
 function App() {
 
 const [tokenName, setTokenName] = useState('Alpha Nexus')
 const [tokenSymbol, setTokenSymbol] = useState('ANX')
 const [totalSupply, setTotalSupply] = useState('10000')
+const [tradeDirection, setTradeDirection] = useState<TradeDirection>('buy')
+const [tradeAmount, setTradeAmount] = useState('')
 
   const [output, setOutput] = useState(
     'Press the button to calculate a test curve.'
@@ -92,6 +218,10 @@ const [totalSupply, setTotalSupply] = useState('10000')
 
 const [curveResult, setCurveResult] =
   useState<ReturnType<typeof buildPortableCurve> | null>(null)
+
+const tradeEstimate = curveResult
+  ? estimateQuoteAmount(curveResult, tradeDirection, tradeAmount)
+  : null
 
 
   function calculateCurve() {
@@ -226,6 +356,79 @@ setCurveResult(preview)
     </div>
   ))}
 </div>
+
+<section
+  aria-labelledby="trade-simulation-title"
+  style={{
+    background: '#1d293b',
+    border: '1px solid #566f9b',
+    borderRadius: '12px',
+    padding: '18px',
+    marginTop: '20px',
+  }}
+>
+  <h3 id="trade-simulation-title">Buy/Sell Simulation</h3>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+      gap: '12px',
+    }}
+  >
+    <label htmlFor="trade-direction">Trade direction</label>
+    <select
+      id="trade-direction"
+      value={tradeDirection}
+      disabled={!curveResult}
+      onChange={(event) =>
+        setTradeDirection(event.target.value === 'sell' ? 'sell' : 'buy')
+      }
+    >
+      <option value="buy">Buy {tokenSymbol || 'ANX'}</option>
+      <option value="sell">Sell {tokenSymbol || 'ANX'}</option>
+    </select>
+
+    <label htmlFor="trade-amount">{tokenSymbol || 'ANX'} amount</label>
+    <input
+      id="trade-amount"
+      type="text"
+      inputMode="decimal"
+      value={tradeAmount}
+      disabled={!curveResult}
+      onChange={(event) => setTradeAmount(event.target.value)}
+      aria-describedby="trade-simulation-help"
+    />
+  </div>
+  <p id="trade-simulation-help" style={{ fontSize: '13px' }}>
+    {!curveResult
+      ? 'Calculate the curve to enable a simulation based on its SDK-derived segments.'
+      : `Maximum: ${formatRawAmount(curveResult.reconciliation.saleAllocationRaw, curveResult.metadata.baseDecimals)} ${tokenSymbol || 'ANX'} (sale allocation).`}
+  </p>
+  <p aria-live="polite">
+    <span style={{ display: 'block', fontSize: '13px', opacity: 0.8 }}>
+      Estimated quote {tradeDirection === 'buy' ? 'input' : 'output'} (quote units, {curveResult?.metadata.quoteDecimals ?? '—'} decimals)
+    </span>
+    <strong style={{ display: 'block', fontSize: '26px', marginTop: '8px' }}>
+      {tradeEstimate?.quoteAmount === null || !tradeEstimate
+        ? '—'
+        : tradeEstimate.quoteAmount.toLocaleString('en-US', {
+          maximumFractionDigits: Math.min(curveResult?.metadata.quoteDecimals ?? 6, 6),
+        })}
+    </strong>
+  </p>
+  {tradeEstimate?.error && (
+    <p role="alert" style={{ color: '#ffb4b4' }}>
+      {tradeEstimate.error}
+    </p>
+  )}
+  {curveResult && (
+    <small style={{ opacity: 0.7 }}>
+      Illustrative numerical estimate from SDK curve segments, without fees.
+      Buys follow the curve from its start; sells unwind from its terminal
+      price. This is not a live quote or executable trade.
+    </small>
+  )}
+</section>
 
 {curveResult && (
   
