@@ -186,7 +186,9 @@ setCurveResult(preview)
 </div>
 
 {curveResult && (
-  <div style={{
+  
+<div className="sdk-results-grid" style={{
+
     background: '#1d293b',
     border: '1px solid #566f9b',
     borderRadius: '12px',

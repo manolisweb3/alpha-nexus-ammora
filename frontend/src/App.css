@@ -91,3 +91,26 @@ main pre {
     padding: 22px !important;
   }
 }
+
+.sdk-results-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(220px, 1fr)
+  );
+  gap: 14px;
+}
+
+.sdk-results-grid > h3 {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+}
+
+.sdk-results-grid > p {
+  margin: 0;
+  padding: 20px;
+  background: #263752;
+  border: 1px solid #566f9b;
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+}
