@@ -39,13 +39,46 @@ const economics: PortableCurveInput = {
 }
 
 function App() {
+
+const [tokenName, setTokenName] = useState('Alpha Nexus')
+const [tokenSymbol, setTokenSymbol] = useState('ANX')
+const [totalSupply, setTotalSupply] = useState('10000')
+
   const [output, setOutput] = useState(
     'Press the button to calculate a test curve.'
   )
 
   function calculateCurve() {
     try {
-      const preview = buildPortableCurve(economics)
+      
+if (!/^[1-9]\d*$/.test(totalSupply)) {
+  throw new Error('Total Supply must be a positive whole number')
+}
+
+const supplyRaw = BigInt(totalSupply) * 10n ** BigInt(economics.baseDecimals)
+
+
+const preview = buildPortableCurve({
+  ...economics,
+  totalSupplyRaw: supplyRaw,
+  saleAllocationRaw: supplyRaw / 2n,
+  migrationQuoteThreshold: {
+    kind: 'exact',
+    raw: 10_000_000_000_000n * BigInt(totalSupply) / 10_000n,
+  },
+
+migration: {
+  ...economics.migration,
+  baseBudgetRaw:
+    economics.migration.baseBudgetRaw * BigInt(totalSupply) / 10_000n,
+  quoteBudgetRaw:
+    economics.migration.quoteBudgetRaw * BigInt(totalSupply) / 10_000n,
+},
+})
+
+
+
+      
       const json = JSON.stringify(
         preview,
         (_key, value) =>
@@ -76,6 +109,37 @@ function App() {
       <p>Network: GIWA Sepolia Testnet</p>
 
       <hr />
+
+<section style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
+  <h2>Token Details</h2>
+
+  <label htmlFor="token-name">Token Name</label>
+  <input
+    id="token-name"
+    type="text"
+    value={tokenName}
+    onChange={(e) => setTokenName(e.target.value)}
+  />
+
+  <label htmlFor="token-symbol">Token Symbol</label>
+  <input
+    id="token-symbol"
+    type="text"
+    value={tokenSymbol}
+    onChange={(e) => setTokenSymbol(e.target.value)}
+  />
+
+  <label htmlFor="total-supply">Total Supply</label>
+  <input
+    id="total-supply"
+    type="number"
+    min="1"
+    step="1"
+    value={totalSupply}
+    onChange={(e) => setTotalSupply(e.target.value)}
+  />
+</section>
+
 
       <h2>Bonding Curve Simulator</h2>
       <p>
