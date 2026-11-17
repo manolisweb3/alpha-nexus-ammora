@@ -151,16 +151,50 @@ migration: {
         Calculate Curve
       </button>
 
-      <pre style={{
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+    gap: '12px',
+    marginTop: '20px',
+  }}
+>
+  {[
+    { label: 'Token Name', value: tokenName },
+    { label: 'Symbol', value: tokenSymbol },
+    { label: 'Total Supply', value: totalSupply },
+  ].map((item) => (
+    <div
+      key={item.label}
+      style={{
         background: '#1d293b',
-        padding: '18px',
+        border: '1px solid #566f9b',
         borderRadius: '12px',
-        overflowX: 'auto',
-        whiteSpace: 'pre-wrap',
-        overflowWrap: 'anywhere',
-      }}>
-        {output}
-      </pre>
+        padding: '16px',
+      }}
+    >
+      <small>{item.label}</small>
+      <h3>{item.value}</h3>
+    </div>
+  ))}
+</div>
+
+<details style={{ marginTop: '20px' }}>
+  <summary style={{ cursor: 'pointer' }}>
+    Show SDK Results
+  </summary>
+  <pre style={{
+    background: '#1d293b',
+    padding: '18px',
+    borderRadius: '12px',
+    overflowX: 'auto',
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'anywhere',
+  }}>
+    {output}
+  </pre>
+</details>
+
     </main>
   )
 }
