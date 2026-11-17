@@ -38,6 +38,48 @@ const economics: PortableCurveInput = {
   },
 }
 
+export function makeCurveChartPoints(
+  curve: ReturnType<typeof buildPortableCurve>
+) {
+  const q64 = 2 ** 64
+  const scale = 10 ** (
+    curve.metadata.baseDecimals -
+    curve.metadata.quoteDecimals
+  )
+
+  const points: { sold: number; price: number }[] = []
+  let sold = 0
+
+  for (const segment of curve.segments) {
+    const low = Number(segment.lowerSqrtPrice) / q64
+    const high = Number(segment.upperSqrtPrice) / q64
+    const liquidity = Number(segment.liquidity)
+
+    if (
+      low <= 0 ||
+      high <= low ||
+      !Number.isFinite(liquidity) ||
+      liquidity <= 0
+    ) continue
+
+    for (let i = 0; i <= 20; i++) {
+      const sqrtPrice = low + (high - low) * i / 20
+
+      points.push({
+        sold: sold + liquidity * (1 / low - 1 / sqrtPrice),
+        price: sqrtPrice ** 2 * scale,
+      })
+    }
+
+    sold += liquidity * (1 / low - 1 / high)
+  }
+
+  return points.map((point) => ({
+    progress: sold > 0 ? (point.sold / sold) * 100 : 0,
+    price: point.price,
+  }))
+}
+
 function App() {
 
 const [tokenName, setTokenName] = useState('Alpha Nexus')
@@ -294,6 +336,8 @@ setCurveResult(preview)
 
   </div>
 )}
+{curveResult && <BondingCurveChart curve={curveResult} />}
+
 
 <details style={{ marginTop: '20px' }}>
   <summary style={{ cursor: 'pointer' }}>
@@ -316,3 +360,69 @@ setCurveResult(preview)
 }
 
 export default App
+
+export function BondingCurveChart({
+  curve,
+}: {
+  curve: ReturnType<typeof buildPortableCurve>
+}) {
+  const points = makeCurveChartPoints(curve).filter(
+    (p) => Number.isFinite(p.price) &&
+           Number.isFinite(p.progress)
+  )
+
+  if (points.length < 2) return null
+
+  const prices = points.map((p) => p.price)
+  const minPrice = Math.min(...prices)
+  const maxPrice = Math.max(...prices)
+  const range = Math.max(maxPrice - minPrice, 1)
+
+  const path = points.map((p, i) => {
+    const x = 40 + p.progress * 5.2
+    const y = 205 - ((p.price - minPrice) / range) * 175
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
+  }).join(' ')
+
+  return (
+    <div style={{
+      background: '#1d293b',
+      border: '1px solid #566f9b',
+      borderRadius: '14px',
+      padding: '20px',
+      marginTop: '20px'
+    }}>
+      <h3>Bonding Curve Preview</h3>
+      <svg
+        viewBox="0 0 600 255"
+        width="100%"
+        role="img"
+        aria-label="Bonding curve price chart"
+      >
+        <line x1="40" y1="205" x2="560" y2="205"
+          stroke="#7184a8" />
+        <line x1="40" y1="30" x2="40" y2="205"
+          stroke="#7184a8" />
+        <path d={path} fill="none"
+          stroke="#46dce9" strokeWidth="4"
+          strokeLinecap="round" />
+        <text x="40" y="20" fill="white" fontSize="14">
+          {maxPrice.toLocaleString('en-US')}
+        </text>
+        <text x="40" y="225" fill="white" fontSize="14">
+          {minPrice.toLocaleString('en-US')}
+        </text>
+        <text x="40" y="248" fill="#cbd5e1" fontSize="13">
+          0%
+        </text>
+        <text x="530" y="248" fill="#cbd5e1" fontSize="13">
+          100%
+        </text>
+      </svg>
+      <small style={{ opacity: 0.7 }}>
+        Illustrative curve based on SDK segments.
+        Not live market prices.
+      </small>
+    </div>
+  )
+}
